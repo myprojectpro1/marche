@@ -1,0 +1,52 @@
+:root { --tilebg: rgba(255,255,255,.80); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --tilebg: rgba(36,40,52,.82); } }
+:root[data-theme="dark"] { --tilebg: rgba(36,40,52,.82); }
+
+html { scroll-behavior: smooth; }
+
+@keyframes pageIn { from { opacity: 0; transform: translateY(12px) scale(.995); } to { opacity: 1; transform: none; } }
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+@keyframes pop { 0% { transform: scale(.6); } 60% { transform: scale(1.3); } 100% { transform: scale(1); } }
+
+.page { animation: pageIn .32s cubic-bezier(.22,1,.36,1) both; }
+
+/* chargement en squelette */
+.skel { position: relative; overflow: hidden; background: rgba(120,130,140,.22); }
+.skel::after { content: ''; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent); animation: shimmer 1.3s infinite; }
+
+/* retour tactile */
+.btn, .chip, .tab, .row, .round, .heart, .tile {
+  transition: transform .18s cubic-bezier(.22,1,.36,1), background .2s, box-shadow .2s, opacity .2s;
+}
+.btn:active, .chip:active, .round:active, .heart:active { transform: scale(.95); }
+.tab:active { transform: scale(.9); }
+.row:active { background: var(--line); }
+.tile:active { transform: scale(.97); }
+.tab svg { transition: transform .25s cubic-bezier(.34,1.56,.64,1); }
+.tab.on svg { transform: translateY(-2px) scale(1.12); }
+.heart.on svg { animation: pop .35s cubic-bezier(.34,1.56,.64,1); }
+
+/* grille : apparition en cascade, sans flou coûteux sur chaque carte */
+.grid .tile { animation: rise .4s cubic-bezier(.22,1,.36,1) both; contain: layout paint; }
+.grid .tile:nth-child(2) { animation-delay: .04s; } .grid .tile:nth-child(3) { animation-delay: .08s; }
+.grid .tile:nth-child(4) { animation-delay: .12s; } .grid .tile:nth-child(5) { animation-delay: .16s; }
+.grid .tile:nth-child(6) { animation-delay: .2s; } .grid .tile:nth-child(n+7) { animation-delay: .24s; }
+.tile.glass { backdrop-filter: none; -webkit-backdrop-filter: none; background: var(--tilebg); }
+.tile .img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; background: rgba(120,130,140,.25); opacity: 0; transition: opacity .4s; }
+.tile .img.loaded, .tile .img.ph { opacity: 1; }
+.bubble { animation: rise .25s both; }
+
+/* paiement */
+.methods { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; margin-top: 10px; }
+.methods button { border: 1px solid var(--line); background: var(--field); border-radius: 14px; padding: 12px 6px; font-weight: 600; transition: all .2s; }
+.methods button.on { background: var(--acc); color: #fff; border-color: var(--acc); }
+.step { display: block; margin-top: 18px; }
+.pay-code { display: block; margin-top: 10px; padding: 12px; border-radius: 12px; background: var(--field);
+  font-family: ui-monospace, monospace; font-size: 1.05rem; text-align: center; word-break: break-all; }
+a.btn { text-decoration: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}

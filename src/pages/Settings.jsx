@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '../supabase'
 import { uploadImage } from '../api'
-import { getTheme, setTheme, METHODS } from '../utils'
+import { getTheme, setTheme, cleanNum } from '../utils'
 import { Avatar, Row, Empty } from '../ui'
 
 const Switch = ({ on, onChange }) => (
   <button className={on ? 'switch on' : 'switch'} onClick={() => onChange(!on)} aria-pressed={on}><i /></button>
 )
+
+const NUMS = [['orange_number', 'Orange Money'], ['moov_number', 'Moov Money'], ['wave_number', 'Wave']]
 
 export default function Settings({ session }) {
   const { section } = useParams()
@@ -30,26 +32,38 @@ export default function Settings({ session }) {
   const setPriv = (k, val) => setV({ ...v, [k]: val })
 
   async function savePublic() {
-    setBusy(true); setMsg('')
     const { error } = await supabase.from('profiles').update({
       full_name: p.full_name || '', username: p.username?.trim().toLowerCase() || null,
       bio: p.bio || '', city: p.city || '',
     }).eq('id', uid)
-    setBusy(false)
-    setMsg(error ? (error.code === '23505' ? 'Ce nom d’utilisateur est déjà pris.' : error.message) : 'Enregistré ✓')
+    if (error) throw new Error(error.code === '23505' ? 'Ce nom d’utilisateur est déjà pris.' : error.message)
   }
 
   async function savePrivate(patch = {}) {
-    setBusy(true); setMsg('')
     const next = { ...v, ...patch }
     setV(next)
     const { error } = await supabase.from('private_settings').upsert({
-      id: uid, phone: next.phone || null, payout_method: next.payout_method || null,
-      payout_number: next.payout_number || null,
+      id: uid, phone: next.phone || null,
+      orange_number: next.orange_number || null, moov_number: next.moov_number || null, wave_number: next.wave_number || null,
       notif_messages: next.notif_messages ?? true, notif_orders: next.notif_orders ?? true,
     })
+    if (error) throw new Error(error.message)
+  }
+
+  async function run(fn) {
+    setBusy(true); setMsg('')
+    try { await fn(); setMsg('Enregistré ✓') } catch (e) { setMsg(e.message) }
     setBusy(false)
-    setMsg(error ? error.message : 'Enregistré ✓')
+  }
+
+  async function savePay() {
+    const patch = {}
+    for (const [k] of NUMS) {
+      const n = cleanNum(v[k])
+      if (n && !/^\d{8}$/.test(n)) return setMsg('Numéro invalide : 8 chiffres attendus.')
+      patch[k] = n
+    }
+    run(() => savePrivate(patch))
   }
 
   async function changeAvatar(e) {
@@ -83,7 +97,7 @@ export default function Settings({ session }) {
         <h4 className="group">Compte</h4>
         <div className="glass list">
           <Row to="/parametres/profil" icon="👤" label="Profil" />
-          <Row to="/parametres/paiement" icon="💳" label="Paiements reçus" value={METHODS[v.payout_method]} />
+          <Row to="/parametres/paiement" icon="💳" label="Paiements reçus" />
           <Row to="/parametres/notifications" icon="🔔" label="Notifications" />
           <Row to="/parametres/securite" icon="🔒" label="Sécurité" />
         </div>
@@ -111,7 +125,7 @@ export default function Settings({ session }) {
         <input placeholder="Ville" value={p.city || ''} onChange={(e) => setPub('city', e.target.value)} />
         <textarea rows="3" placeholder="À propos de toi" value={p.bio || ''} onChange={(e) => setPub('bio', e.target.value)} />
         <input type="tel" placeholder="Téléphone (privé)" value={v.phone || ''} onChange={(e) => setPriv('phone', e.target.value)} />
-        <Save onClick={async () => { await savePublic(); await savePrivate() }} />
+        <Save onClick={() => run(async () => { await savePublic(); await savePrivate() })} />
       </div>
     )
   }
@@ -119,13 +133,11 @@ export default function Settings({ session }) {
   if (section === 'paiement') {
     return (
       <div className="glass card">
-        <p className="note">Choisis où recevoir l’argent de tes ventes, une fois que l’acheteur a confirmé la réception.</p>
-        <select value={v.payout_method || ''} onChange={(e) => setPriv('payout_method', e.target.value)}>
-          <option value="">Moyen de paiement…</option>
-          {Object.entries(METHODS).map(([k, n]) => <option key={k} value={k}>{n}</option>)}
-        </select>
-        <input type="tel" placeholder="Numéro (ex. 70 00 00 00)" value={v.payout_number || ''} onChange={(e) => setPriv('payout_number', e.target.value)} />
-        <Save onClick={() => savePrivate()} />
+        <p className="note">Renseigne les numéros sur lesquels tu veux recevoir l’argent. L’acheteur te paie directement sur le numéro qu’il choisit. Format : 8 chiffres, sans +226. Laisse vide un moyen que tu n’acceptes pas.</p>
+        {NUMS.map(([k, n]) => (
+          <input key={k} type="tel" inputMode="numeric" placeholder={`${n} (ex. 70123456)`} value={v[k] || ''} onChange={(e) => setPriv(k, e.target.value)} />
+        ))}
+        <Save onClick={savePay} />
       </div>
     )
   }
@@ -134,9 +146,9 @@ export default function Settings({ session }) {
     return (
       <div className="glass list">
         <div className="row static"><span className="lbl">Nouveaux messages</span>
-          <Switch on={v.notif_messages ?? true} onChange={(x) => savePrivate({ notif_messages: x })} /></div>
+          <Switch on={v.notif_messages ?? true} onChange={(x) => run(() => savePrivate({ notif_messages: x }))} /></div>
         <div className="row static"><span className="lbl">Commandes et paiements</span>
-          <Switch on={v.notif_orders ?? true} onChange={(x) => savePrivate({ notif_orders: x })} /></div>
+          <Switch on={v.notif_orders ?? true} onChange={(x) => run(() => savePrivate({ notif_orders: x }))} /></div>
         {msg && <p className="note center">{msg}</p>}
       </div>
     )

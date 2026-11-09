@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fcfa } from './utils'
 
@@ -23,15 +24,39 @@ export function Icon({ n, size = 22, fill }) {
 
 export function Avatar({ p, size = 56 }) {
   const s = { width: size, height: size, fontSize: size / 2.4 }
-  if (p?.avatar_url) return <img className="avatar" style={s} src={p.avatar_url} alt="" />
+  if (p?.avatar_url) return <img className="avatar" style={s} src={p.avatar_url} alt="" loading="lazy" decoding="async" />
   return <div className="avatar" style={s}>{(p?.full_name || p?.username || '?')[0].toUpperCase()}</div>
+}
+
+// Image avec chargement différé et fondu
+export function Img({ src }) {
+  const [ok, setOk] = useState(false)
+  if (!src) return <div className="img ph" />
+  return <img className={ok ? 'img loaded' : 'img'} src={src} alt="" loading="lazy" decoding="async" onLoad={() => setOk(true)} />
+}
+
+export const Skel = ({ h = 16, w = '100%', r = 10 }) => (
+  <div className="skel" style={{ height: h, width: w, borderRadius: r }} />
+)
+
+export function GridSkeleton() {
+  return (
+    <div className="grid">
+      {[0, 1, 2, 3].map((i) => (
+        <div key={i} className="tile glass">
+          <div className="skel" style={{ aspectRatio: '1' }} />
+          <div className="meta"><Skel w="60%" /><Skel /><Skel w="40%" h={12} /></div>
+        </div>
+      ))}
+    </div>
+  )
 }
 
 export function Tile({ l, fav, onFav }) {
   return (
     <div className="tile glass">
       <Link to={`/annonce/${l.id}`}>
-        <div className="img" style={{ backgroundImage: l.photos?.[0] ? `url(${l.photos[0]})` : 'none' }} />
+        <Img src={l.photos?.[0]} />
         <div className="meta">
           <b>{fcfa(l.price)}</b>
           <span>{l.title}</span>

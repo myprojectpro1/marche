@@ -5,7 +5,7 @@ export const when = (d) =>
 
 export const STATUS = {
   pending: 'En attente de paiement',
-  paid: 'Payé · fonds sécurisés',
+  paid: 'Paiement confirmé',
   shipped: 'Expédié',
   delivered: 'Reçu par l’acheteur',
   released: 'Terminé',
@@ -14,6 +14,25 @@ export const STATUS = {
 }
 
 export const METHODS = { orange_money: 'Orange Money', moov: 'Moov Money', wave: 'Wave' }
+
+// Numéro burkinabè : 8 chiffres (on retire espaces, +226, 00226)
+export function cleanNum(s) {
+  let d = String(s || '').replace(/\D/g, '')
+  if (d.startsWith('00226')) d = d.slice(5)
+  else if (d.startsWith('226') && d.length > 8) d = d.slice(3)
+  return d
+}
+
+// Codes USSD de transfert vers le numéro du vendeur
+export function ussdCode(method, num) {
+  if (method === 'orange_money') return `*144*2*1*${num}#`
+  if (method === 'moov') return `*555*2*1*${num}#`
+  return null
+}
+export function ussdLink(method, num) {
+  const c = ussdCode(method, num)
+  return c ? 'tel:' + c.replace(/#/g, '%23') : null
+}
 
 // Champs propres à chaque catégorie (stockés dans listings.attributes)
 export const ATTRS = {

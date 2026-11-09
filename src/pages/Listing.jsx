@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabase'
 import { useFavs } from '../api'
 import { fcfa } from '../utils'
-import { Avatar, Icon, Empty } from '../ui'
+import { Avatar, Icon, Empty, Skel } from '../ui'
 
 export default function Listing({ session }) {
   const { id } = useParams()
@@ -30,31 +30,41 @@ export default function Listing({ session }) {
   }, [id])
 
   if (err) return <Empty text={err} />
-  if (!l) return <Empty text="Chargement…" />
+  if (!l) return (
+    <>
+      <div className="skel" style={{ height: 300, borderRadius: 22, marginBottom: 12 }} />
+      <div className="glass card"><Skel w="40%" h={26} /><div style={{ height: 10 }} /><Skel /><div style={{ height: 8 }} /><Skel w="70%" /></div>
+    </>
+  )
 
   const mine = session?.user.id === l.seller_id
   const contactOnly = cat?.payment_mode === 'contact'
   const fav = favs.has(l.id)
 
   async function buy() {
-    const { error } = await supabase.from('orders').insert({
+    const { data, error } = await supabase.from('orders').insert({
       listing_id: l.id, buyer_id: session.user.id, seller_id: l.seller_id, amount: l.price,
-    })
-    if (error) return setMsg(error.message)
-    nav('/commandes')
+    }).select('id').single()
+    if (error) {
+      if (error.code === '23505') { setMsg('Tu as déjà une commande en cours pour cet article.'); return nav('/commandes') }
+      return setMsg(error.message)
+    }
+    nav(`/paiement/${data.id}`)
   }
 
   async function share() {
     const url = window.location.href
     if (navigator.share) navigator.share({ title: l.title, url }).catch(() => {})
-    else { await navigator.clipboard?.writeText(url); setMsg('Lien copié.') }
+    else { try { await navigator.clipboard.writeText(url); setMsg('Lien copié.') } catch { setMsg(url) } }
   }
+
+  const attrs = Object.entries(l.attributes || {}).filter(([, v]) => v)
 
   return (
     <>
       <div className="photos">
         {(l.photos?.length ? l.photos : [null]).map((p, i) =>
-          p ? <img key={p} src={p} alt="" /> : <div key={i} className="noimg">Pas de photo</div>
+          p ? <img key={p} src={p} alt="" loading={i ? 'lazy' : 'eager'} decoding="async" /> : <div key={i} className="noimg">Pas de photo</div>
         )}
       </div>
 
@@ -75,9 +85,9 @@ export default function Listing({ session }) {
         {l.description && <p>{l.description}</p>}
       </div>
 
-      {Object.entries(l.attributes || {}).filter(([, v]) => v).length > 0 && (
+      {attrs.length > 0 && (
         <div className="glass list">
-          {Object.entries(l.attributes).filter(([, v]) => v).map(([k, v]) => (
+          {attrs.map(([k, v]) => (
             <div key={k} className="row static"><span className="lbl">{k}</span><span className="val">{v}</span></div>
           ))}
         </div>

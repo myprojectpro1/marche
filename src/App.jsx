@@ -1,25 +1,27 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Routes, Route, Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from './supabase'
-import { Icon, Empty } from './ui'
+import { Icon, GridSkeleton } from './ui'
 import Home from './pages/Home'
 import Auth from './pages/Auth'
-import Publish from './pages/Publish'
-import Listing from './pages/Listing'
-import Favorites from './pages/Favorites'
-import Inbox from './pages/Inbox'
-import Chat from './pages/Chat'
-import Profile from './pages/Profile'
-import MyListings from './pages/MyListings'
-import Orders from './pages/Orders'
-import Settings from './pages/Settings'
-import Seller from './pages/Seller'
-import Help from './pages/Help'
+
+const Listing = lazy(() => import('./pages/Listing'))
+const Publish = lazy(() => import('./pages/Publish'))
+const Favorites = lazy(() => import('./pages/Favorites'))
+const Inbox = lazy(() => import('./pages/Inbox'))
+const Chat = lazy(() => import('./pages/Chat'))
+const Profile = lazy(() => import('./pages/Profile'))
+const MyListings = lazy(() => import('./pages/MyListings'))
+const Orders = lazy(() => import('./pages/Orders'))
+const Pay = lazy(() => import('./pages/Pay'))
+const Settings = lazy(() => import('./pages/Settings'))
+const Seller = lazy(() => import('./pages/Seller'))
+const Help = lazy(() => import('./pages/Help'))
 
 const TITLES = {
   login: 'Connexion', vendre: 'Vendre', annonce: 'Annonce', favoris: 'Favoris', messages: 'Messages',
   chat: 'Discussion', profil: 'Profil', 'mes-annonces': 'Mes annonces', commandes: 'Mes commandes',
-  parametres: 'Paramètres', aide: 'Aide et sécurité', vendeur: 'Vendeur',
+  paiement: 'Paiement', parametres: 'Paramètres', aide: 'Aide et sécurité', vendeur: 'Vendeur',
 }
 
 function Gate({ session, children }) {
@@ -41,7 +43,9 @@ export default function App() {
     return () => sub.subscription.unsubscribe()
   }, [])
 
-  if (!ready) return <Empty text="Chargement…" />
+  useEffect(() => { window.scrollTo(0, 0) }, [pathname])
+
+  if (!ready) return <main><GridSkeleton /></main>
 
   const seg = pathname.split('/')[1] || ''
   const inChat = seg === 'chat'
@@ -50,6 +54,7 @@ export default function App() {
       <Icon n={icon} /><small>{label}</small>
     </Link>
   )
+  const gate = (el) => <Gate session={session}>{el}</Gate>
 
   return (
     <>
@@ -69,21 +74,26 @@ export default function App() {
       </header>
 
       <main>
-        <Routes>
-          <Route path="/" element={<Home session={session} />} />
-          <Route path="/login" element={<Auth />} />
-          <Route path="/annonce/:id" element={<Listing session={session} />} />
-          <Route path="/vendeur/:id" element={<Seller session={session} />} />
-          <Route path="/aide" element={<Help />} />
-          <Route path="/vendre" element={<Gate session={session}><Publish session={session} /></Gate>} />
-          <Route path="/favoris" element={<Gate session={session}><Favorites session={session} /></Gate>} />
-          <Route path="/messages" element={<Gate session={session}><Inbox session={session} /></Gate>} />
-          <Route path="/chat/:listingId/:otherId" element={<Gate session={session}><Chat session={session} /></Gate>} />
-          <Route path="/profil" element={<Gate session={session}><Profile session={session} /></Gate>} />
-          <Route path="/mes-annonces" element={<Gate session={session}><MyListings session={session} /></Gate>} />
-          <Route path="/commandes" element={<Gate session={session}><Orders session={session} /></Gate>} />
-          <Route path="/parametres/:section?" element={<Gate session={session}><Settings session={session} /></Gate>} />
-        </Routes>
+        <div key={pathname} className="page">
+          <Suspense fallback={<GridSkeleton />}>
+            <Routes>
+              <Route path="/" element={<Home session={session} />} />
+              <Route path="/login" element={<Auth />} />
+              <Route path="/annonce/:id" element={<Listing session={session} />} />
+              <Route path="/vendeur/:id" element={<Seller session={session} />} />
+              <Route path="/aide" element={<Help />} />
+              <Route path="/vendre" element={gate(<Publish session={session} />)} />
+              <Route path="/favoris" element={gate(<Favorites session={session} />)} />
+              <Route path="/messages" element={gate(<Inbox session={session} />)} />
+              <Route path="/chat/:listingId/:otherId" element={gate(<Chat session={session} />)} />
+              <Route path="/profil" element={gate(<Profile session={session} />)} />
+              <Route path="/mes-annonces" element={gate(<MyListings session={session} />)} />
+              <Route path="/commandes" element={gate(<Orders session={session} />)} />
+              <Route path="/paiement/:id" element={gate(<Pay session={session} />)} />
+              <Route path="/parametres/:section?" element={gate(<Settings session={session} />)} />
+            </Routes>
+          </Suspense>
+        </div>
       </main>
 
       {!inChat && (
