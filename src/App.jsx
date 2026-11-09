@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import { Routes, Route, Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from './supabase'
 import { Icon, GridSkeleton } from './ui'
+import ErrorBoundary from './ErrorBoundary'
 import Home from './pages/Home'
 import Auth from './pages/Auth'
 
@@ -31,6 +32,7 @@ function Gate({ session, children }) {
 export default function App() {
   const [session, setSession] = useState(null)
   const [ready, setReady] = useState(false)
+  const [online, setOnline] = useState(navigator.onLine)
   const { pathname } = useLocation()
   const nav = useNavigate()
 
@@ -40,7 +42,15 @@ export default function App() {
       setReady(true)
     })
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s))
-    return () => sub.subscription.unsubscribe()
+    const on = () => setOnline(true)
+    const off = () => setOnline(false)
+    window.addEventListener('online', on)
+    window.addEventListener('offline', off)
+    return () => {
+      sub.subscription.unsubscribe()
+      window.removeEventListener('online', on)
+      window.removeEventListener('offline', off)
+    }
   }, [])
 
   useEffect(() => { window.scrollTo(0, 0) }, [pathname])
@@ -58,6 +68,7 @@ export default function App() {
 
   return (
     <>
+      {!online && <div className="offline">Pas de connexion internet</div>}
       <header className="top glass">
         {seg === '' ? (
           <>
@@ -75,24 +86,27 @@ export default function App() {
 
       <main>
         <div key={pathname} className="page">
-          <Suspense fallback={<GridSkeleton />}>
-            <Routes>
-              <Route path="/" element={<Home session={session} />} />
-              <Route path="/login" element={<Auth />} />
-              <Route path="/annonce/:id" element={<Listing session={session} />} />
-              <Route path="/vendeur/:id" element={<Seller session={session} />} />
-              <Route path="/aide" element={<Help />} />
-              <Route path="/vendre" element={gate(<Publish session={session} />)} />
-              <Route path="/favoris" element={gate(<Favorites session={session} />)} />
-              <Route path="/messages" element={gate(<Inbox session={session} />)} />
-              <Route path="/chat/:listingId/:otherId" element={gate(<Chat session={session} />)} />
-              <Route path="/profil" element={gate(<Profile session={session} />)} />
-              <Route path="/mes-annonces" element={gate(<MyListings session={session} />)} />
-              <Route path="/commandes" element={gate(<Orders session={session} />)} />
-              <Route path="/paiement/:id" element={gate(<Pay session={session} />)} />
-              <Route path="/parametres/:section?" element={gate(<Settings session={session} />)} />
-            </Routes>
-          </Suspense>
+          <ErrorBoundary>
+            <Suspense fallback={<GridSkeleton />}>
+              <Routes>
+                <Route path="/" element={<Home session={session} />} />
+                <Route path="/login" element={<Auth />} />
+                <Route path="/annonce/:id" element={<Listing session={session} />} />
+                <Route path="/vendeur/:id" element={<Seller session={session} />} />
+                <Route path="/aide" element={<Help />} />
+                <Route path="/vendre/:id?" element={gate(<Publish session={session} />)} />
+                <Route path="/favoris" element={gate(<Favorites session={session} />)} />
+                <Route path="/messages" element={gate(<Inbox session={session} />)} />
+                <Route path="/chat/:listingId/:otherId" element={gate(<Chat session={session} />)} />
+                <Route path="/profil" element={gate(<Profile session={session} />)} />
+                <Route path="/mes-annonces" element={gate(<MyListings session={session} />)} />
+                <Route path="/commandes" element={gate(<Orders session={session} />)} />
+                <Route path="/paiement/:id" element={gate(<Pay session={session} />)} />
+                <Route path="/parametres/:section?" element={gate(<Settings session={session} />)} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
+          </ErrorBoundary>
         </div>
       </main>
 

@@ -18,8 +18,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-      - run: npm ci
+      # le lockfile vient d'Android : on le régénère pour Linux
+      - run: rm -f package-lock.json && npm install --no-audit --no-fund
       - run: npm run build -- --base=./
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}

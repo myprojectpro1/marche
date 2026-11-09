@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../supabase'
 import { fcfa } from '../utils'
-import { Empty } from '../ui'
+import { Empty, GridSkeleton } from '../ui'
 
 const LABEL = { active: 'En ligne', reserved: 'Réservé', sold: 'Vendu', hidden: 'Masqué' }
 
@@ -22,11 +22,12 @@ export default function MyListings({ session }) {
   }
   async function remove(id) {
     if (!window.confirm('Supprimer cette annonce ?')) return
-    await supabase.from('listings').delete().eq('id', id)
+    const { error } = await supabase.from('listings').delete().eq('id', id)
+    if (error) window.alert('Suppression impossible : une commande est liée à cette annonce. Masque-la plutôt.')
     load()
   }
 
-  if (!items) return <Empty text="Chargement…" />
+  if (!items) return <GridSkeleton />
   if (!items.length) return <Empty text="Tu n’as pas encore d’annonce." />
   return items.map((l) => (
     <div key={l.id} className="glass card item">
@@ -38,6 +39,7 @@ export default function MyListings({ session }) {
         </div>
       </Link>
       <div className="actions">
+        <Link className="btn small alt" to={`/vendre/${l.id}`}>Modifier</Link>
         {l.status !== 'sold' && <button className="btn small alt" onClick={() => setStatus(l.id, 'sold')}>Marquer vendu</button>}
         {l.status === 'hidden'
           ? <button className="btn small alt" onClick={() => setStatus(l.id, 'active')}>Remettre en ligne</button>

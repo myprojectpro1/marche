@@ -1,0 +1,6 @@
+.offline { position: fixed; top: 0; left: 0; right: 0; z-index: 60; text-align: center; font-size: .85rem; color: #fff; background: #d92d20;
+  padding: calc(6px + env(safe-area-inset-top, 0px)) 6px 6px; animation: rise .25s both; }
+.more { display: block; margin: 16px auto 0; width: auto; padding: 11px 26px; border-radius: 20px; }
+.thumbs .wrap { position: relative; flex: 0 0 auto; }
+.thumbs .x { position: absolute; top: 3px; right: 3px; width: 24px; height: 24px; border-radius: 50%; border: 0; background: rgba(0,0,0,.6); color: #fff; line-height: 1; }
+.card select:disabled { opacity: .6; }
