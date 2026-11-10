@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { Routes, Route, Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from './supabase'
+import { useUnread } from './unread'
 import { Icon, GridSkeleton } from './ui'
 import ErrorBoundary from './ErrorBoundary'
 import Home from './pages/Home'
@@ -35,6 +36,7 @@ export default function App() {
   const [online, setOnline] = useState(navigator.onLine)
   const { pathname } = useLocation()
   const nav = useNavigate()
+  const unread = useUnread(session, pathname)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -59,9 +61,10 @@ export default function App() {
 
   const seg = pathname.split('/')[1] || ''
   const inChat = seg === 'chat'
-  const tab = (to, icon, label) => (
+  const tab = (to, icon, label, badge = 0) => (
     <Link to={to} className={(to === '/' ? pathname === '/' : pathname.startsWith(to)) ? 'tab on' : 'tab'}>
       <Icon n={icon} /><small>{label}</small>
+      {badge > 0 && <span className="badge">{badge > 9 ? '9+' : badge}</span>}
     </Link>
   )
   const gate = (el) => <Gate session={session}>{el}</Gate>
@@ -84,7 +87,7 @@ export default function App() {
         )}
       </header>
 
-      <main>
+      <main className={inChat ? 'chat-main' : ''}>
         <div key={pathname} className="page">
           <ErrorBoundary>
             <Suspense fallback={<GridSkeleton />}>
@@ -115,7 +118,7 @@ export default function App() {
           {tab('/', 'home', 'Accueil')}
           {tab('/favoris', 'heart', 'Favoris')}
           <Link to="/vendre" className="tab sell"><Icon n="plus" size={26} /></Link>
-          {tab('/messages', 'chat', 'Messages')}
+          {tab('/messages', 'chat', 'Messages', unread)}
           {tab(session ? '/profil' : '/login', 'user', 'Profil')}
         </nav>
       )}

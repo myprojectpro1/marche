@@ -1,0 +1,6 @@
+{
+  "appId": "com.marche.app",
+  "appName": "Marché",
+  "webDir": "dist",
+  "server": { "androidScheme": "https" }
+}

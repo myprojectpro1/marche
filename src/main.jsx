@@ -4,6 +4,7 @@ import { HashRouter } from 'react-router-dom'
 import './index.css'
 import './motion.css'
 import './extra.css'
+import './chat.css'
 import App from './App.jsx'
 import { applyTheme, getTheme } from './utils'
 

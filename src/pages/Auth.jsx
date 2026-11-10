@@ -22,7 +22,7 @@ export default function Auth() {
   const [busy, setBusy] = useState(false)
 
   // l'email de confirmation ramène sur le site actuel (pas sur localhost)
-  const back = window.location.origin + window.location.pathname
+  const back = 'https://myprojectpro1.github.io/marche/'
 
   async function submit() {
     setBusy(true)

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../supabase'
 import { byIds } from '../api'
 import { when } from '../utils'
-import { Avatar, Empty } from '../ui'
+import { Avatar, Empty, GridSkeleton } from '../ui'
 
 export default function Inbox({ session }) {
   const me = session.user.id
@@ -25,16 +25,16 @@ export default function Inbox({ session }) {
         byIds('profiles', list.map((c) => c.other), 'id,full_name,username,avatar_url'),
         byIds('listings', list.map((c) => c.listing_id), 'id,title'),
       ])
-      setConvs(list.map((c) => ({ ...c, p: profiles[c.other], l: listings[c.listing_id] })))
+      setConvs(list.map((c) => ({ ...c, p: profiles[c.other], l: listings[c.listing_id], unread: c.receiver_id === me && !c.read_at })))
     })()
   }, [me])
 
-  if (!convs) return <Empty text="Chargement…" />
+  if (!convs) return <GridSkeleton />
   if (!convs.length) return <Empty text="Aucun message pour le moment." />
   return (
     <div className="glass list">
       {convs.map((c) => (
-        <Link key={`${c.listing_id}:${c.other}`} to={`/chat/${c.listing_id}/${c.other}`} className="row conv">
+        <Link key={`${c.listing_id}:${c.other}`} to={`/chat/${c.listing_id}/${c.other}`} className={c.unread ? 'row conv unread' : 'row conv'}>
           <Avatar p={c.p} size={48} />
           <div className="grow">
             <b>{c.p?.full_name || c.p?.username || 'Membre'}</b>

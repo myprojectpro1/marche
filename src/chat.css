@@ -1,0 +1,14 @@
+.tab { position: relative; }
+.badge { position: absolute; top: 0; right: 4px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+  background: #f04438; color: #fff; font-size: .68rem; font-weight: 700; display: grid; place-items: center; }
+
+/* page de discussion : en-tête et champ fixes, seuls les messages défilent */
+main.chat-main { padding-bottom: 8px; }
+.chat { display: flex; flex-direction: column; height: calc(100vh - 80px); height: calc(100dvh - 80px); min-height: 0; }
+.chat-head { flex: none; margin-bottom: 8px; }
+.bubbles { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 4px 2px 10px; }
+.composer { position: static; flex: none; width: 100%; max-width: none; margin: 8px 0 calc(6px + env(safe-area-inset-bottom, 0px)); }
+.bubble .ts { display: block; margin-top: 3px; font-size: .68rem; opacity: .7; }
+.conv.unread b { font-weight: 800; }
+.conv.unread .snip { color: var(--t); font-weight: 700; }
+.conv.unread::after { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--acc); flex: none; }

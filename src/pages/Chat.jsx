@@ -3,6 +3,8 @@ import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../supabase'
 import { Avatar, Icon } from '../ui'
 
+const hm = (d) => new Date(d).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+
 export default function Chat({ session }) {
   const { listingId, otherId } = useParams()
   const me = session.user.id
@@ -10,14 +12,19 @@ export default function Chat({ session }) {
   const [other, setOther] = useState(null)
   const [listing, setListing] = useState(null)
   const [text, setText] = useState('')
-  const end = useRef(null)
+  const [err, setErr] = useState('')
+  const box = useRef(null)
 
   async function load() {
     const { data } = await supabase.from('messages').select('*')
       .eq('listing_id', listingId)
       .or(`and(sender_id.eq.${me},receiver_id.eq.${otherId}),and(sender_id.eq.${otherId},receiver_id.eq.${me})`)
       .order('created_at')
-    setMsgs(data || [])
+    const list = data || []
+    setMsgs(list)
+    if (list.some((m) => m.receiver_id === me && !m.read_at)) {
+      supabase.rpc('mark_read', { p_listing: listingId, p_other: otherId })
+    }
   }
 
   useEffect(() => {
@@ -28,13 +35,19 @@ export default function Chat({ session }) {
     return () => clearInterval(t)
   }, [listingId, otherId])
 
-  useEffect(() => { end.current?.scrollIntoView({ behavior: 'smooth' }) }, [msgs.length])
+  // on fait défiler seulement la zone des messages, pas toute la page
+  useEffect(() => {
+    const b = box.current
+    if (b) b.scrollTo({ top: b.scrollHeight, behavior: 'smooth' })
+  }, [msgs.length])
 
   async function send() {
     const body = text.trim()
     if (!body) return
+    setErr('')
     setText('')
-    await supabase.from('messages').insert({ listing_id: listingId, sender_id: me, receiver_id: otherId, body })
+    const { error } = await supabase.from('messages').insert({ listing_id: listingId, sender_id: me, receiver_id: otherId, body })
+    if (error) { setErr('Message non envoyé : ' + error.message); setText(body) }
     load()
   }
 
@@ -47,14 +60,18 @@ export default function Chat({ session }) {
           <Link to={`/annonce/${listingId}`}><small>{listing?.title}</small></Link>
         </div>
       </div>
-      <div className="bubbles">
+      <div className="bubbles" ref={box}>
         {msgs.map((m) => (
-          <div key={m.id} className={m.sender_id === me ? 'bubble me' : 'bubble'}>{m.body}</div>
+          <div key={m.id} className={m.sender_id === me ? 'bubble me' : 'bubble'}>
+            {m.body}
+            <span className="ts">{hm(m.created_at)}{m.sender_id === me && m.read_at ? ' · Lu' : ''}</span>
+          </div>
         ))}
-        <div ref={end} />
       </div>
+      {err && <p className="err center">{err}</p>}
       <div className="composer glass">
-        <input placeholder="Message…" value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} />
+        <input placeholder="Message…" value={text} maxLength={2000} onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && send()} />
         <button className="round on" onClick={send} aria-label="Envoyer"><Icon n="send" size={18} /></button>
       </div>
     </div>
